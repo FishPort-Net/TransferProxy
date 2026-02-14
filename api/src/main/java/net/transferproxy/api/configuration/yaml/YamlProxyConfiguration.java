@@ -27,6 +27,12 @@ package net.transferproxy.api.configuration.yaml;
 import io.netty.util.ResourceLeakDetector;
 import net.transferproxy.api.configuration.ProxyConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @SuppressWarnings("unused")
 public class YamlProxyConfiguration implements ProxyConfiguration {
@@ -35,6 +41,7 @@ public class YamlProxyConfiguration implements ProxyConfiguration {
     private YamlStatus status;
     private YamlMiscellaneous miscellaneous;
     private YamlLogging logging;
+    private YamlForwarding forwarding;
 
     @Override
     public ProxyConfiguration.@NotNull Network getNetwork() {
@@ -54,6 +61,11 @@ public class YamlProxyConfiguration implements ProxyConfiguration {
     @Override
     public ProxyConfiguration.@NotNull Logging getLogging() {
         return this.logging != null ? this.logging : (this.logging = new YamlLogging());
+    }
+
+    @Override
+    public ProxyConfiguration.@NotNull Forwarding getForwarding() {
+        return this.forwarding != null ? this.forwarding : (this.forwarding = new YamlForwarding());
     }
 
     private static class YamlNetwork implements ProxyConfiguration.Network {
@@ -254,6 +266,63 @@ public class YamlProxyConfiguration implements ProxyConfiguration {
             return this.logCompleteDisconnectException;
         }
 
+    }
+
+    private static class YamlForwarding implements ProxyConfiguration.Forwarding {
+
+        private final boolean enabled;
+        private final boolean required;
+        private final String secretFile;
+
+        // Non-YAML deserialization fields, loaded at runtime (volatile for thread-safety)
+        private transient volatile SecretKeySpec secretSpec;
+        private transient volatile boolean secretLoaded;
+
+        private YamlForwarding() {
+            this.enabled = false;
+            this.required = true;
+            this.secretFile = "forwarding.secret";
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return this.enabled;
+        }
+
+        @Override
+        public boolean isRequired() {
+            return this.required;
+        }
+
+        @Override
+        @NotNull
+        public String getSecretFile() {
+            return this.secretFile;
+        }
+
+        @Override
+        @Nullable
+        public synchronized SecretKeySpec getSecretSpec() {
+            if (!this.secretLoaded) {
+                this.secretLoaded = true;
+                try {
+                    Path path = Path.of(this.secretFile);
+                    if (Files.exists(path)) {
+                        String content = String.join("", Files.readAllLines(path));
+                        if (!content.isEmpty()) {
+                            this.secretSpec = new SecretKeySpec(
+                                content.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                                "HmacSHA256"
+                            );
+                        }
+                    }
+                } catch (Exception e) {
+                    LoggerFactory.getLogger(YamlForwarding.class)
+                        .error("Failed to load forwarding secret from {}", this.secretFile, e);
+                }
+            }
+            return this.secretSpec;
+        }
     }
 
 }

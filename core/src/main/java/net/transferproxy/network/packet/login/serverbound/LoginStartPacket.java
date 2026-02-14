@@ -31,6 +31,7 @@ import net.transferproxy.api.event.login.PreLoginEvent;
 import net.transferproxy.api.network.connection.PlayerConnection;
 import net.transferproxy.api.network.packet.serverbound.ServerboundPacket;
 import net.transferproxy.api.network.protocol.Protocolized;
+import net.transferproxy.forwarding.VelocityForwardingUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -46,6 +47,13 @@ public record LoginStartPacket(String name, UUID uuid) implements ServerboundPac
     @Override
     public void handle(final @NotNull PlayerConnection connection) {
         connection.setProfile(this.name, this.uuid);
+
+        // Modern Forwarding：委托给 forwarding 模块，由其发送 Custom Query 并暂停登录
+        if (VelocityForwardingUtil.maybeStartForwarding(connection, this.name, this.uuid)) {
+            return; // 已接管登录流程，后续由 LoginPluginResponsePacket.handle() 恢复
+        }
+
+        // 正常流程（未启用 forwarding）
         final PreLoginEvent event = new PreLoginEvent(connection, this.uuid, this.name);
         TransferProxy.getInstance().getModuleManager().getEventManager().call(EventType.PRE_LOGIN, event);
         if (event.canSendSuccessPacket()) {

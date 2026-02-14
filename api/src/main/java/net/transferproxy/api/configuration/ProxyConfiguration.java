@@ -28,6 +28,9 @@ import io.netty.util.ResourceLeakDetector;
 import net.transferproxy.api.TransferProxy;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Represents the configuration of {@link TransferProxy}
@@ -69,6 +72,17 @@ public interface ProxyConfiguration {
     @NotNull
     @Contract(pure = true)
     Logging getLogging();
+
+    /**
+     * Retrieves the {@link Forwarding} configuration.
+     *
+     * @return forwarding configuration, never {@code null}
+     */
+    @NotNull
+    @Contract(pure = true)
+    default Forwarding getForwarding() {
+        return DisabledForwarding.INSTANCE;
+    }
 
     /**
      * Configuration for network-related settings, including server binding and performance tuning.
@@ -305,6 +319,69 @@ public interface ProxyConfiguration {
         @Contract(pure = true)
         boolean isLogCompleteDisconnectException();
 
+    }
+
+    /**
+     * Configuration for Velocity Modern Forwarding support.
+     */
+    interface Forwarding {
+
+        /**
+         * Whether Velocity Modern Forwarding is enabled.
+         */
+        @Contract(pure = true)
+        boolean isEnabled();
+
+        /**
+         * Whether to require all connections to provide valid forwarding data.
+         * If true, connections without valid data are disconnected.
+         */
+        @Contract(pure = true)
+        boolean isRequired();
+
+        /**
+         * Gets the path to the forwarding secret file.
+         */
+        @NotNull
+        @Contract(pure = true)
+        String getSecretFile();
+
+        /**
+         * Gets the HMAC secret key spec, loaded from the secret file.
+         * Returns null if the secret file was not found or could not be loaded.
+         */
+        @Nullable
+        SecretKeySpec getSecretSpec();
+    }
+
+    /**
+     * Default disabled implementation of Forwarding.
+     */
+    final class DisabledForwarding implements Forwarding {
+
+        static final DisabledForwarding INSTANCE = new DisabledForwarding();
+
+        @Override
+        public boolean isEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isRequired() {
+            return true;
+        }
+
+        @Override
+        @NotNull
+        public String getSecretFile() {
+            return "forwarding.secret";
+        }
+
+        @Override
+        @Nullable
+        public SecretKeySpec getSecretSpec() {
+            return null;
+        }
     }
 
 }

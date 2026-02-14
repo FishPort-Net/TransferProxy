@@ -65,3 +65,15 @@ logging:
   # Displays the full exception when a connection is terminated by an exception.
   # Only works when the "log-disconnect-for-exception" option is enabled.
   log-complete-disconnect-exception: false
+
+# Velocity Modern Forwarding support.
+# Enable this when TransferProxy is deployed as a backend server behind Velocity.
+forwarding:
+  # Whether to enable Velocity Modern Forwarding.
+  enabled: false
+  # Whether to require valid forwarding data from all connections.
+  # If true, direct connections (not from Velocity) will be rejected.
+  required: true
+  # Path to the forwarding secret file.
+  # The file content must match Velocity's forwarding.secret exactly.
+  secret-file: "forwarding.secret"

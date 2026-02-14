@@ -34,6 +34,7 @@ import net.transferproxy.network.packet.config.serverbound.*;
 import net.transferproxy.network.packet.handshake.HandshakePacket;
 import net.transferproxy.network.packet.login.serverbound.LoginAcknowledgedPacket;
 import net.transferproxy.network.packet.login.serverbound.LoginCookieResponsePacket;
+import net.transferproxy.network.packet.login.serverbound.LoginPluginResponsePacket;
 import net.transferproxy.network.packet.login.serverbound.LoginStartPacket;
 import net.transferproxy.network.packet.status.PingPongPacket;
 import net.transferproxy.network.packet.status.serverbound.StatusRequestPacket;
@@ -48,7 +49,7 @@ public class LatestPacketProviderGroup implements PacketProviderGroup {
     private static final PacketProvider[] HANDSHAKE = providers(HandshakePacket::new);
     private static final PacketProvider[] STATUS = providers(StatusRequestPacket::new, PingPongPacket::new);
     private static final PacketProvider[] LOGIN =
-            providers(LoginStartPacket::new, null, null, LoginAcknowledgedPacket::new, LoginCookieResponsePacket::new);
+            providers(LoginStartPacket::new, null, LoginPluginResponsePacket::new, LoginAcknowledgedPacket::new, LoginCookieResponsePacket::new);
     // @formatter:off
     private static final PacketProvider[] CONFIG = newBuilder()
             .put(ClientInformationPacket::new)
